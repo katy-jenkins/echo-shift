@@ -1,0 +1,75 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "properties": {
+    "week_type": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B"
+      ],
+      "description": "Week type A or B"
+    },
+    "day": {
+      "type": "string",
+      "enum": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "description": "Day of the week"
+    },
+    "period": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "description": "Period number (1\u20134)"
+    },
+    "student_id": {
+      "type": "string",
+      "description": "ID of the student"
+    },
+    "student_name": {
+      "type": "string",
+      "description": "Cached name of the student"
+    },
+    "slso_id": {
+      "type": "string",
+      "description": "ID of the assigned SLSO (worker)"
+    },
+    "slso_name": {
+      "type": "string",
+      "description": "Cached name of the SLSO"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject of the lesson"
+    },
+    "room_number": {
+      "type": "string",
+      "description": "Room number for the lesson"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes for the assignment"
+    }
+  },
+  "required": [
+    "week_type",
+    "day",
+    "period",
+    "student_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

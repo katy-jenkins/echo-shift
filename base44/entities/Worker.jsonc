@@ -1,0 +1,35 @@
+{
+  "name": "Worker",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the worker"
+    },
+    "role": {
+      "type": "string",
+      "description": "Job role or position"
+    },
+    "work_days": {
+      "type": "array",
+      "description": "Regular weekly work days (0=Sun, 1=Mon, ..., 6=Sat)",
+      "items": {
+        "type": "number"
+      }
+    },
+    "color": {
+      "type": "string",
+      "description": "Display color for the worker"
+    },
+    "sort_order": {
+      "type": "number",
+      "description": "Display order for sorting workers"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": true
+  }
+}

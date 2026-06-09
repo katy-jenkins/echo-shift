@@ -1,0 +1,43 @@
+{
+  "name": "Absence",
+  "type": "object",
+  "properties": {
+    "worker_id": {
+      "type": "string",
+      "description": "ID of the absent worker"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of absence"
+    },
+    "leave_type": {
+      "type": "string",
+      "enum": [
+        "lwop",
+        "sick",
+        "facs",
+        "excursion",
+        "extended_leave",
+        "other"
+      ],
+      "description": "Type of leave"
+    },
+    "cover_worker_id": {
+      "type": "string",
+      "description": "ID of the worker covering this shift"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "worker_id",
+    "date",
+    "leave_type"
+  ],
+  "rls": {
+    "read": true
+  }
+}

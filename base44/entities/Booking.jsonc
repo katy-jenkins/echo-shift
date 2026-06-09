@@ -1,0 +1,54 @@
+{
+  "name": "Booking",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The specific calendar date of this booking"
+    },
+    "period": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "description": "Period number (1\u20134)"
+    },
+    "student_id": {
+      "type": "string",
+      "description": "ID of the student"
+    },
+    "student_name": {
+      "type": "string",
+      "description": "Cached name of the student"
+    },
+    "slso_id": {
+      "type": "string",
+      "description": "ID of the assigned SLSO (worker)"
+    },
+    "slso_name": {
+      "type": "string",
+      "description": "Cached name of the SLSO"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes for this booking"
+    },
+    "is_cancelled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this booking has been cancelled"
+    }
+  },
+  "required": [
+    "date",
+    "period",
+    "student_id"
+  ],
+  "rls": {
+    "read": true
+  }
+}

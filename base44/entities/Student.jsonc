@@ -1,0 +1,33 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the student"
+    },
+    "year_group": {
+      "type": "string",
+      "description": "Year group of the student"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the student"
+    },
+    "is_funded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the student has funded support"
+    },
+    "funded_lessons_per_week": {
+      "type": "number",
+      "description": "Number of funded lessons per week"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": true
+  }
+}
