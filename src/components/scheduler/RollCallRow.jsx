@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -10,24 +10,45 @@ export default function RollCallRow({ weekType }) {
 
   const { data: rollCalls = [] } = useQuery({
     queryKey: ["roll-call", weekType],
-    queryFn: () =>
-      base44.entities.Assignment.filter({ week_type: weekType, period: 0, student_id: "roll-call" }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assignment")
+        .select("*")
+        .eq("week_type", weekType)
+        .eq("period", 0)
+        .eq("student_id", "roll-call");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const upsert = useMutation({
     mutationFn: async ({ day, notes }) => {
       const existing = rollCalls.find((r) => r.day === day);
       if (existing) {
-        return base44.entities.Assignment.update(existing.id, { notes });
+        const { data, error } = await supabase
+          .from("assignment")
+          .update({ notes })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
       } else {
-        return base44.entities.Assignment.create({
-          week_type: weekType,
-          day,
-          period: 0,
-          student_id: "roll-call",
-          student_name: "Roll Call",
-          notes,
-        });
+        const { data, error } = await supabase
+          .from("assignment")
+          .insert({
+            week_type: weekType,
+            day,
+            period: 0,
+            student_id: "roll-call",
+            student_name: "Roll Call",
+            notes,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roll-call", weekType] }),

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ShieldAlert, CalendarDays, LayoutGrid, Plus, X } from "lucide-react";
@@ -107,26 +107,51 @@ function ReadOnlyCalendar() {
   const { data: workers = [] } = useQuery({
     queryKey: ["workers-pub"],
     queryFn: async () => {
-      const list = await base44.entities.Worker.list();
-      return [...list].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+      const { data, error } = await supabase.from("worker").select("*");
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     },
   });
   const { data: assignmentsA = [] } = useQuery({
     queryKey: ["assignments-pub-A"],
-    queryFn: () => base44.entities.Assignment.filter({ week_type: "A" }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assignment").select("*").eq("week_type", "A");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const { data: assignmentsB = [] } = useQuery({
     queryKey: ["assignments-pub-B"],
-    queryFn: () => base44.entities.Assignment.filter({ week_type: "B" }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assignment").select("*").eq("week_type", "B");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const { data: absences = [] } = useQuery({
     queryKey: ["absences-pub", weekDateStrings[0]],
-    queryFn: () => base44.entities.Absence.filter({ date: { $gte: weekDateStrings[0], $lte: weekDateStrings[4] } }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("absence")
+        .select("*")
+        .gte("date", weekDateStrings[0])
+        .lte("date", weekDateStrings[4]);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: weekDateStrings.length > 0,
   });
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings-pub", weekDateStrings[0]],
-    queryFn: () => base44.entities.Booking.filter({ date: { $gte: weekDateStrings[0], $lte: weekDateStrings[4] } }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking")
+        .select("*")
+        .gte("date", weekDateStrings[0])
+        .lte("date", weekDateStrings[4]);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: weekDateStrings.length > 0,
   });
 
@@ -286,29 +311,50 @@ function EditableScheduler() {
   const { data: workers = [] } = useQuery({
     queryKey: ["workers-pub"],
     queryFn: async () => {
-      const list = await base44.entities.Worker.list();
-      return [...list].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+      const { data, error } = await supabase.from("worker").select("*");
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     },
   });
   const { data: students = [] } = useQuery({
     queryKey: ["students-pub"],
-    queryFn: () => base44.entities.Student.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("student").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ["assignments-pub-sched", weekType],
-    queryFn: () => base44.entities.Assignment.filter({ week_type: weekType }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assignment").select("*").eq("week_type", weekType);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const createAssignment = useMutation({
-    mutationFn: (data) => base44.entities.Assignment.create(data),
+    mutationFn: async (values) => {
+      const { data, error } = await supabase.from("assignment").insert(values).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments-pub-sched"] }),
   });
   const updateAssignment = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Assignment.update(id, data),
+    mutationFn: async ({ id, data: values }) => {
+      const { data, error } = await supabase.from("assignment").update(values).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments-pub-sched"] }),
   });
   const deleteAssignment = useMutation({
-    mutationFn: (id) => base44.entities.Assignment.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("assignment").delete().eq("id", id);
+      if (error) throw error;
+      return { id };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments-pub-sched"] }),
   });
 

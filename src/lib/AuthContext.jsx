@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -35,8 +35,15 @@ export const AuthProvider = ({ children }) => {
     try {
       // If a Supabase user happens to be signed in, surface them; otherwise this
       // throws and we fall through to the unauthenticated (PIN-gated) state.
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user) throw new Error('Not authenticated');
+      const u = data.user;
+      setUser({
+        id: u.id,
+        email: u.email,
+        full_name: u.user_metadata?.full_name ?? u.email,
+        role: u.user_metadata?.role ?? 'user',
+      });
       setIsAuthenticated(true);
     } catch {
       setUser(null);
@@ -50,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    base44.auth.logout();
+    supabase.auth.signOut();
     if (shouldRedirect) {
       window.location.href = '/';
     }
@@ -58,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = () => {
     // No external login flow in the ported app; the PIN gate handles access.
-    base44.auth.redirectToLogin();
+    // Kept as a no-op so existing call sites stay valid.
   };
 
   return (

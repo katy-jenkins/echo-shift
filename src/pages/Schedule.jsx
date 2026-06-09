@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import PinGate from "@/components/PinGate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { startOfWeek, format, addDays } from "date-fns";
@@ -19,8 +19,9 @@ export default function Schedule() {
   const { data: workers = [] } = useQuery({
     queryKey: ["workers"],
     queryFn: async () => {
-      const list = await base44.entities.Worker.list();
-      return [...list].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+      const { data, error } = await supabase.from("worker").select("*");
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     },
   });
 
@@ -29,27 +30,41 @@ export default function Schedule() {
 
   const { data: absences = [] } = useQuery({
     queryKey: ["absences", weekKey],
-    queryFn: () =>
-      base44.entities.Absence.filter({
-        date: {
-          $gte: format(weekStart, "yyyy-MM-dd"),
-          $lte: format(weekEndDate, "yyyy-MM-dd"),
-        },
-      }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("absence")
+        .select("*")
+        .gte("date", format(weekStart, "yyyy-MM-dd"))
+        .lte("date", format(weekEndDate, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const createAbsence = useMutation({
-    mutationFn: (data) => base44.entities.Absence.create(data),
+    mutationFn: async (values) => {
+      const { data, error } = await supabase.from("absence").insert(values).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["absences"] }),
   });
 
   const updateAbsence = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Absence.update(id, data),
+    mutationFn: async ({ id, data: values }) => {
+      const { data, error } = await supabase.from("absence").update(values).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["absences"] }),
   });
 
   const deleteAbsence = useMutation({
-    mutationFn: (id) => base44.entities.Absence.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("absence").delete().eq("id", id);
+      if (error) throw error;
+      return { id };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["absences"] }),
   });
 

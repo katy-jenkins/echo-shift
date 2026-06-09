@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { addDays, format, startOfWeek, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -50,25 +50,38 @@ export default function TermCalendar() {
   const { data: workers = [] } = useQuery({
     queryKey: ["workers"],
     queryFn: async () => {
-      const list = await base44.entities.Worker.list();
-      return [...list].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+      const { data, error } = await supabase.from("worker").select("*");
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     },
   });
 
   const { data: students = [] } = useQuery({
     queryKey: ["students"],
-    queryFn: () => base44.entities.Student.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("student").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   // Load ALL assignments for both week types (they're templates)
   const { data: assignmentsA = [] } = useQuery({
     queryKey: ["assignments", "A"],
-    queryFn: () => base44.entities.Assignment.filter({ week_type: "A" }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assignment").select("*").eq("week_type", "A");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const { data: assignmentsB = [] } = useQuery({
     queryKey: ["assignments", "B"],
-    queryFn: () => base44.entities.Assignment.filter({ week_type: "B" }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assignment").select("*").eq("week_type", "B");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   // Load bookings for current week
@@ -81,34 +94,56 @@ export default function TermCalendar() {
   // Load absences for current week
   const { data: absences = [] } = useQuery({
     queryKey: ["absences", weekDateStrings[0]],
-    queryFn: () =>
-      base44.entities.Absence.filter({
-        date: { $gte: weekDateStrings[0], $lte: weekDateStrings[4] },
-      }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("absence")
+        .select("*")
+        .gte("date", weekDateStrings[0])
+        .lte("date", weekDateStrings[4]);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: weekDateStrings.length > 0,
   });
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings", weekDateStrings[0]],
-    queryFn: () =>
-      base44.entities.Booking.filter({
-        date: { $gte: weekDateStrings[0], $lte: weekDateStrings[4] },
-      }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking")
+        .select("*")
+        .gte("date", weekDateStrings[0])
+        .lte("date", weekDateStrings[4]);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: weekDateStrings.length > 0,
   });
 
   const createBooking = useMutation({
-    mutationFn: (data) => base44.entities.Booking.create(data),
+    mutationFn: async (values) => {
+      const { data, error } = await supabase.from("booking").insert(values).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
   const updateBooking = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Booking.update(id, data),
+    mutationFn: async ({ id, data: values }) => {
+      const { data, error } = await supabase.from("booking").update(values).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
   const deleteBooking = useMutation({
-    mutationFn: (id) => base44.entities.Booking.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("booking").delete().eq("id", id);
+      if (error) throw error;
+      return { id };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 

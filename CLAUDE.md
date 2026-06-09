@@ -12,21 +12,26 @@ this app with an in-browser AI (Lovable), with Katy handling anything code-level
 - **Backend:** Supabase (Postgres + Auth). Project `echo-shift`, region Sydney.
 - **Repo:** github.com/katy-jenkins/echo-shift (personal account `katy-jenkins`).
 
-## Architecture (how the port works)
+## Architecture (Supabase-native)
 
-The Base44 backend was replaced by swapping **only the data layer** — every page,
-component, and the term-date logic is byte-for-byte the original:
+The app was first ported from Base44 via a `base44.entities.*` compatibility
+facade, then migrated to **direct Supabase calls** so Lovable's AI (which generates
+Supabase-native code) can extend it naturally. The facade is gone.
 
-- `src/api/supabaseClient.js` — the real Supabase client (reads `VITE_SUPABASE_*`).
-- `src/api/base44Client.js` — a **facade** exposing the same `base44.entities.*`
-  (`list/filter/create/update/delete/get`) and `base44.auth.*` shape the app already
-  used, backed by Supabase. Filters translate Mongo-style `$gte/$lte/$lt/$gt`.
-- `src/lib/AuthContext.jsx` — slimmed off Base44; same context shape.
+- `src/api/supabaseClient.js` — the Supabase client (reads `VITE_SUPABASE_*`).
+  Every page/component imports `{ supabase }` from here.
+- **Data access is inline** in `@tanstack/react-query` `queryFn`/`mutationFn`:
+  `supabase.from('<table>').select('*')…`, `.insert(v).select().single()`,
+  `.update(v).eq('id', id).select().single()`, `.delete().eq('id', id)`. Date
+  ranges use `.gte()/.lte()/.lt()/.gt()`. Tables are lowercase singular
+  (`worker`, `student`, `assignment`, `booking`, `absence`).
+- `src/lib/AuthContext.jsx` / `PageNotFound.jsx` — use `supabase.auth.getUser()` /
+  `signOut()` directly; same context shape as before.
 - `supabase/migrations/0001_init.sql` — schema (text PKs preserve original ids).
 - `scripts/seed.mjs` — one-off CSV → Supabase import (`npm run seed`).
 
-When adding features, prefer the existing `base44.entities.*` calls; don't import
-`@supabase/supabase-js` directly in pages.
+When adding features, use `supabase.from(...)` directly in the React Query hooks —
+matching the existing pattern — so Lovable stays consistent.
 
 ## Data model
 

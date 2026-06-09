@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import PinGate from "@/components/PinGate";
 import { format, addDays, subDays, startOfToday } from "date-fns";
@@ -31,29 +31,37 @@ export default function AbsenceSummary() {
 
   const { data: workers = [] } = useQuery({
     queryKey: ["workers"],
-    queryFn: () => base44.entities.Worker.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("worker").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const { data: upcomingAbsences = [], isLoading: loadingUpcoming } = useQuery({
     queryKey: ["absences-upcoming"],
-    queryFn: () =>
-      base44.entities.Absence.filter({
-        date: {
-          $gte: format(today, "yyyy-MM-dd"),
-          $lte: format(in30Days, "yyyy-MM-dd"),
-        },
-      }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("absence")
+        .select("*")
+        .gte("date", format(today, "yyyy-MM-dd"))
+        .lte("date", format(in30Days, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const { data: pastAbsences = [], isLoading: loadingPast } = useQuery({
     queryKey: ["absences-past"],
-    queryFn: () =>
-      base44.entities.Absence.filter({
-        date: {
-          $gte: format(fortnight, "yyyy-MM-dd"),
-          $lt: format(today, "yyyy-MM-dd"),
-        },
-      }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("absence")
+        .select("*")
+        .gte("date", format(fortnight, "yyyy-MM-dd"))
+        .lt("date", format(today, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const getWorker = (id) => workers.find((w) => w.id === id);
